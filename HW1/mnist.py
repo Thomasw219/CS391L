@@ -28,14 +28,24 @@ def load_data(s, num_images):
     labels = np.frombuffer(la_buf, dtype=np.uint8).astype(np.int64)
     return data, labels
 
-def sample_covariance(images):
-    cov_mat = np.zeros((num_pixels, num_pixels))
-    mean = np.mean(images, axis=0)
-    for image in images:
-        cv = np.outer(image - mean, image - mean)
+def sample_covariance(X):
+    cov_mat = np.zeros((X.shape[1], X.shape[1]))
+    mean = np.mean(X, axis=0)
+    for x in X:
+        cv = np.outer(x - mean, x - mean)
         cov_mat += cv
-    cov_mat *= 1 / images.shape[0]
+    cov_mat *= 1 / X.shape[0]
     return cov_mat
+
+def transform_to_eigenspace(X, output_dim=-1):
+    cov_mat = sample_covariance(X)
+    w, v = np.linalg.eig(cov_mat)
+    v_inv = np.linalg.inv(v)
+    X_prime = np.matmul(v_inv, X.T).T
+    if output_dim == -1:
+        return X_prime
+    else:
+        return X_prime[:, :output_dim]
 
 train_images, train_labels = load_data('train', 60000)
 test_images, test_labels = load_data('t10k', 10000)
@@ -102,7 +112,8 @@ plt.show()
 plt.figure(0)
 Ns = [10, 50, 100, num_pixels]
 for N in Ns:
-    reduced_images = transformed_images[:, :N]
+#reduced_images = transform_to_eigenspace(train_images, output_dim=N)
+    reduced_images = transformed_images[:, 0:N]
     reduced_v = v[:, :N]
     for i in range(tot):
         out = np.matmul(reduced_v, reduced_images[i])
@@ -111,6 +122,6 @@ for N in Ns:
         plt.axis('off')
         plt.title(str(train_labels[i]))
         plt.imshow(image)
-    plt.savefig("figures/eigendigits_" + str(N) + "_components.png")
+    plt.savefig("eigendigits_" + str(N) + "_components.png")
     plt.show()
 """
