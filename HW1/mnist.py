@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import gzip
+import sklearn
 
 image_size = 28
 num_pixels = image_size**2
@@ -81,8 +82,13 @@ for i in range(num_pixels):
         A[i, j] = np.dot(new_basis_vec, old_basis_vec)
 """
 
+"""
 v_inv = np.linalg.inv(v)
 transformed_images = np.matmul(v_inv, train_images.T).T
+np.save("eigenimages", transformed_images)
+"""
+
+transformed_images = np.load("eigenimages.npy")
 
 """
 end = 100
@@ -92,16 +98,19 @@ plt.savefig("figures/eigenvalues.png")
 plt.show()
 """
 
+"""
 plt.figure(0)
-N = 50
-reduced_images = transformed_images[:, :N]
-reduced_v = v[:, :N]
-for i in range(tot):
-    out = np.matmul(reduced_v, reduced_images[i])
-    image = np.asarray(out.reshape(image_size, image_size, 1).astype(np.float32)).squeeze()
-    plt.subplot(nrows, ncols, i + 1)
-    plt.axis('off')
-    plt.title(str(i))
-    plt.imshow(image)
-plt.savefig("figures/eigendigits_" + str(N) + "_components.png")
-plt.show()
+Ns = [10, 50, 100, num_pixels]
+for N in Ns:
+    reduced_images = transformed_images[:, :N]
+    reduced_v = v[:, :N]
+    for i in range(tot):
+        out = np.matmul(reduced_v, reduced_images[i])
+        image = np.asarray(out.reshape(image_size, image_size, 1).astype(np.float32)).squeeze()
+        plt.subplot(nrows, ncols, i + 1)
+        plt.axis('off')
+        plt.title(str(train_labels[i]))
+        plt.imshow(image)
+    plt.savefig("figures/eigendigits_" + str(N) + "_components.png")
+    plt.show()
+"""
