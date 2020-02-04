@@ -5,6 +5,10 @@ import gzip
 image_size = 28
 num_pixels = image_size**2
 
+nrows = 3
+ncols = 5
+tot = nrows * ncols
+
 def load_data(s, num_images):
     f = gzip.open(s + '_set/' + s + '-images-idx3-ubyte.gz','r')
 
@@ -29,11 +33,6 @@ def sample_covariance(images):
     for image in images:
         cv = np.outer(image - mean, image - mean)
         cov_mat += cv
-        """
-        image = np.asarray(cv.reshape(num_pixels, num_pixels, 1).astype(np.float32)).squeeze()
-        plt.imshow(image)
-        plt.show()
-        """
     cov_mat *= 1 / images.shape[0]
     return cov_mat
 
@@ -44,12 +43,65 @@ test_images, test_labels = load_data('t10k', 10000)
 cov_mat = sample_covariance(train_images)
 np.save("cov_mat", cov_mat)
 """
+
 cov_mat = np.load("cov_mat.npy")
-print(cov_mat.shape)
+
+"""
 w, v = np.linalg.eig(cov_mat)
+np.save("eigvalues", w)
+np.save("eigvectors", v)
 print(w)
-for i in range(10):
-    out = np.matmul(cov_mat, v[:,i])
+"""
+
+w = np.load("eigvalues.npy")
+v = np.load("eigvectors.npy")
+I = np.identity(num_pixels)
+
+"""
+plt.figure(0)
+for i in range(tot):
+    out = np.matmul(cov_mat, v[:, i])
     image = np.asarray(out.reshape(image_size, image_size, 1).astype(np.float32)).squeeze()
+    plt.subplot(nrows, ncols, i + 1)
+    plt.axis('off')
+    plt.title(str(i))
     plt.imshow(image)
-    plt.show()
+#    plt.savefig("figures/eigenvector" + str(i) + ".png")
+plt.savefig("figures/eigenvectors.png")
+plt.show()
+"""
+
+# Doesn't work :(
+"""
+A = np.zeros((num_pixels, num_pixels))
+for i in range(num_pixels):
+    new_basis_vec = v[:, i]
+    for j in range(num_pixels):
+        old_basis_vec = I[:, i]
+        A[i, j] = np.dot(new_basis_vec, old_basis_vec)
+"""
+
+v_inv = np.linalg.inv(v)
+transformed_images = np.matmul(v_inv, train_images.T).T
+
+"""
+end = 100
+ind = np.arange(0, end)
+plt.bar(ind, w[0:end])
+plt.savefig("figures/eigenvalues.png")
+plt.show()
+"""
+
+plt.figure(0)
+N = 50
+reduced_images = transformed_images[:, :N]
+reduced_v = v[:, :N]
+for i in range(tot):
+    out = np.matmul(reduced_v, reduced_images[i])
+    image = np.asarray(out.reshape(image_size, image_size, 1).astype(np.float32)).squeeze()
+    plt.subplot(nrows, ncols, i + 1)
+    plt.axis('off')
+    plt.title(str(i))
+    plt.imshow(image)
+plt.savefig("figures/eigendigits_" + str(N) + "_components.png")
+plt.show()

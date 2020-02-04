@@ -1,2 +1,4 @@
 *.swp
 *_set
+*.png
+*.npy
