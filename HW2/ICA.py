@@ -5,25 +5,18 @@ from scipy.io import loadmat
 def g(x):
     return 1 / (1 + np.exp(-1 * x))
 
-W_i_inv = None
-W_i_old = None
-def grad(W_i, x):
-    global W_i_inv
-    global W_i_old
-    a = np.zeros((W_i.shape[0],))
-    for i, w_i in enumerate(W_i):
-        a[i] = 1 - 2 * g(np.inner(w_i, x))
-    if not np.array_equal(W_i, W_i_old):
-        W_i_old = W_i
-        W_i_inv = np.linalg.inv(np.transpose(W_i))
-    return np.outer(a, x) + W_i_inv
+def grad(W_i, X):
+    Y = np.matmul(W_i, np.transpose(X))
+    Z = np.zeros(Y.shape)
+    for i in range(Y.shape[0]):
+        for j in range(Y.shape[1]):
+            Z[i,j] = g(Y[i,j])
+    A = np.matmul(np.ones(Z.shape) - 2 * Z, np.transpose(Y))
+    return np.matmul(np.identity(W_i.shape[0]) + A, W_i)
 
 def gradient_ascent(W_i, grad, eta, n, X):
-    sum_grad = np.zeros(W_i.shape)
-    for x in X:
-        sum_grad += grad(W_i, x)
-    ave_grad = sum_grad / n
-    return W_i + eta * ave_grad
+    gradient = grad(W_i, X)
+    return W_i + eta * gradient
 
 def normalize(s_i):
     m = np.min(s_i)
@@ -40,60 +33,79 @@ def l2_loss(s_i, s_f):
         total += (s_i[i] - s_f[i])**2
     return total
 
-def total_loss(S_i, S_f):
+def average_correlation(S_i, S_f):
     m = S_i.shape[0]
     total = 0
-    for i in range(m):
-        losses = []
-        for j in range(m):
-            losses.append(l2_loss(normalize(S_i[i]), normalize(S_f[j])))
-        total += min(losses)
-    return total
+    for i in range(S_i.shape[0]):
+        corrs = []
+        for j in range(S_f.shape[0]):
+            corrs.append(np.abs(np.corrcoef(S_i[i], S_f[j])[0,1]))
+        total += max(corrs)
+        max_idx = np.argmax(corrs)
+        S_f = np.delete(S_f, max_idx, axis=0)
+    return total / S_i.shape[0]
 
 sounds = loadmat('data/sounds.mat')['sounds']
 
 test = loadmat('data/icaTest.mat')
 
-np.random.seed(1)
-A = test['A']
-U = test['U']
-X = np.matmul(A, U)
-W = np.random.rand(A.shape[0], A.shape[1])
-idx = np.arange(1, U.shape[1] + 1)
-n = 20
-iterations = 1000000
+num_sounds = 3
+iterations = 25000
 eta = 0.01
+check_frequency = 250
 
-least_loss = np.inf
-for i in range(iterations):
-    indices = np.random.choice(U.shape[1], size=n)
-    batch = np.transpose(U[:,indices])
-    W = gradient_ascent(W, grad, eta, n, batch)
-    S = np.matmul(W, X)
-    l = total_loss(U, S)
+np.random.seed(1)
+s_idx = np.random.choice(sounds.shape[0], size=num_sounds)
+A = np.random.rand(num_sounds, num_sounds) * 2 - np.ones((num_sounds, num_sounds))
+U = sounds[s_idx,:]
+X = np.matmul(A, U)
+W = np.random.rand(A.shape[0], A.shape[1]) / 10
+idx = np.arange(1, U.shape[1] + 1)
 
-    if l < least_loss:
-        least_loss = l
-        print(l)
+batch_sizes = [1, 16, 32, 64, 128]
+correlations = {}
+for n in batch_sizes:
+    W_i = W
+    correlations[n] = []
+    for i in range(iterations):
+        indices = np.random.choice(X.shape[1], size=n)
+        batch = np.transpose(X[:,indices])
+        W_i = gradient_ascent(W_i, grad, eta, n, batch)
 
-        """
-        plt.figure(i)
-        plt.subplot(6, 1, 1)
-        plt.plot(idx, U[0])
-        plt.subplot(6, 1, 2)
-        plt.plot(idx, U[1])
-        plt.subplot(6, 1, 3)
-        plt.plot(idx, U[2])
-        plt.subplot(6, 1, 4)
-        plt.plot(idx, normalize(S[0]))
-        plt.subplot(6, 1, 5)
-        plt.plot(idx, normalize(S[1]))
-        plt.subplot(6, 1, 6)
-        plt.plot(idx, normalize(S[2]))
-        plt.savefig("./figures/" + str(i) + ".png")
-        plt.close()
-        """
+        if i % check_frequency == 0:
+            S = np.matmul(W_i, X)
+            corr = average_correlation(U, S)
+            correlations[n].append(corr)
 
+            print("Iteration " + str(i))
+            print(corr)
+            """
+            plt.figure(i)
+            plt.subplot(6, 1, 1)
+            plt.plot(idx, U[0])
+            plt.subplot(6, 1, 2)
+            plt.plot(idx, U[1])
+            plt.subplot(6, 1, 3)
+            plt.plot(idx, U[2])
+            plt.subplot(6, 1, 4)
+            plt.plot(idx, S[0])
+            plt.subplot(6, 1, 5)
+            plt.plot(idx, S[1])
+            plt.subplot(6, 1, 6)
+            plt.plot(idx, S[2])
+            plt.savefig("./figures/" + str(i) + ".png")
+            plt.close()
+            """
+
+colors = ['r', 'b', 'g', 'm', 'c']
+p_idx = np.arange(0, iterations, check_frequency)
+plt.figure(0)
+for i, n in enumerate(batch_sizes):
+    plt.plot(p_idx, correlations[n], label=str(n), color=colors[i])
+plt.legend()
+plt.savefig("./figures/batch_size_experiment_" + str(num_sounds) + "_sounds.png")
+
+"""
 plt.figure(iterations)
 plt.subplot(6, 1, 1)
 plt.plot(idx, U[0])
@@ -107,5 +119,6 @@ plt.subplot(6, 1, 5)
 plt.plot(idx, normalize(S[1]))
 plt.subplot(6, 1, 6)
 plt.plot(idx, normalize(S[2]))
-plt.savefig("./figures/" + str(iterations) + ".png")
-plt.close()
+#plt.savefig("./figures/" + str(iterations) + ".png")
+plt.show()
+"""
