@@ -12,7 +12,7 @@ def grad(W_i, X):
         for j in range(Y.shape[1]):
             Z[i,j] = g(Y[i,j])
     A = np.matmul(np.ones(Z.shape) - 2 * Z, np.transpose(Y))
-    return np.matmul(np.identity(W_i.shape[0]) + A, W_i)
+    return np.matmul(np.identity(W_i.shape[0]) + A / Y.shape[1], W_i)
 
 def gradient_ascent(W_i, grad, eta, n, X):
     gradient = grad(W_i, X)
@@ -50,9 +50,27 @@ sounds = loadmat('data/sounds.mat')['sounds']
 test = loadmat('data/icaTest.mat')
 
 num_sounds = 3
-iterations = 25000
+iterations = 5000
 eta = 0.01
-check_frequency = 250
+check_frequency = 100
+
+"""
+idx = np.arange(1, sounds.shape[1] + 1)
+plt.figure(0)
+plt.subplot(5, 1, 1)
+plt.plot(idx, sounds[0])
+plt.subplot(5, 1, 2)
+plt.plot(idx, sounds[1])
+plt.subplot(5, 1, 3)
+plt.plot(idx, sounds[2])
+plt.subplot(5, 1, 4)
+plt.plot(idx, sounds[3])
+plt.subplot(5, 1, 5)
+plt.plot(idx, sounds[4])
+plt.savefig("./figures/all_signals.png")
+plt.show()
+exit()
+"""
 
 np.random.seed(1)
 s_idx = np.random.choice(sounds.shape[0], size=num_sounds)
@@ -96,7 +114,9 @@ for n in batch_sizes:
             plt.savefig("./figures/" + str(i) + ".png")
             plt.close()
             """
+    break
 
+"""
 colors = ['r', 'b', 'g', 'm', 'c']
 p_idx = np.arange(0, iterations, check_frequency)
 plt.figure(0)
@@ -104,21 +124,27 @@ for i, n in enumerate(batch_sizes):
     plt.plot(p_idx, correlations[n], label=str(n), color=colors[i])
 plt.legend()
 plt.savefig("./figures/batch_size_experiment_" + str(num_sounds) + "_sounds.png")
-
 """
-plt.figure(iterations)
-plt.subplot(6, 1, 1)
+
+S = np.matmul(W_i, X)
+plt.figure(0)
+plt.subplot(9, 1, 1)
 plt.plot(idx, U[0])
-plt.subplot(6, 1, 2)
+plt.subplot(9, 1, 2)
 plt.plot(idx, U[1])
-plt.subplot(6, 1, 3)
+plt.subplot(9, 1, 3)
 plt.plot(idx, U[2])
-plt.subplot(6, 1, 4)
-plt.plot(idx, normalize(S[0]))
-plt.subplot(6, 1, 5)
-plt.plot(idx, normalize(S[1]))
-plt.subplot(6, 1, 6)
-plt.plot(idx, normalize(S[2]))
+plt.subplot(9, 1, 4)
+plt.plot(idx, X[0])
+plt.subplot(9, 1, 5)
+plt.plot(idx, X[1])
+plt.subplot(9, 1, 6)
+plt.plot(idx, X[2])
+plt.subplot(9, 1, 7)
+plt.plot(idx, S[0])
+plt.subplot(9, 1, 8)
+plt.plot(idx, S[1])
+plt.subplot(9, 1, 9)
+plt.plot(idx, S[2])
 #plt.savefig("./figures/" + str(iterations) + ".png")
 plt.show()
-"""
