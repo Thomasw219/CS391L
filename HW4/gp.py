@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+from scipy.optimize import minimize
+
 def delta(x_1, x_2):
     if np.array_equal(x_1, x_2):
         return 1
@@ -56,35 +58,76 @@ def dkdsig_n(x_1, x_2, sig_f, sig_l, sig_n):
     return np.exp(sig_n) * delta(x_1, x_2)
 
 data_X = np.reshape(np.array([204, 90, 400]), (3, 1))
-data_Y = np.array([-7, -18, 20])
+data_Y = np.reshape(np.array([-7, -18, 20]), (3, 1))
 N = data_X.shape[0]
+
 def logprob(sig):
     sig_f = sig[0]
     sig_l = sig[1]
     sig_n = sig[2]
 
     Q = Cov(data_X, data_X, k, sig_f, sig_l, sig_n)
-    term1 = -1 / 2 * np.matmul(np.matmul(np.transpose(data_Y), np.linalg.inv(Q)), data_Y)
+    Q_inv = np.linalg.inv(Q)
+    term1 = -1 / 2 * np.matmul(np.matmul(np.transpose(data_Y), Q_inv), data_Y)
     term2 = -1 / 2 * np.log(np.linalg.det(Q))
-    term3 = N / 2 * log(2 * np.pi)
+    term3 = N / 2 * np.log(2 * np.pi)
     return term1 + term2 + term3
 
-SIG_F = 2.3
-SIG_L = -7.8
-SIG_N = 0
+def neglogprob(sig):
+    return -1 * logprob(sig)
 
-m_y = np.array([0, 0, 0])
+def partial_derivative(Q_inv, dQdsig, data_Y):
+    dQdsig_inv = -1 * np.matmul(np.matmul(Q_inv, dQdsig), Q_inv)
+    dlogdetQdsig = np.trace(np.matmul(Q_inv, dQdsig))
+    term1 = -1 / 2 * np.matmul(np.matmul(np.transpose(data_Y), dQdsig_inv), data_Y)
+    term2 = -1 / 2 * dlogdetQdsig
+    return term1 + term2
+
+def logprob_grad(sig):
+    sig_f = sig[0]
+    sig_l = sig[1]
+    sig_n = sig[2]
+
+    Q = Cov(data_X, data_X, k, sig_f, sig_l, sig_n)
+    Q_inv = np.linalg.inv(Q)
+    dQdsig_f = Cov(data_X, data_X, dkdsig_f, sig_f, sig_l, sig_n)
+    dQdsig_l = Cov(data_X, data_X, dkdsig_l, sig_f, sig_l, sig_n)
+    dQdsig_n = Cov(data_X, data_X, dkdsig_n, sig_f, sig_l, sig_n)
+    grad = np.zeros((3,))
+    grad[0] = partial_derivative(Q_inv, dQdsig_f, data_Y)
+    grad[1] = partial_derivative(Q_inv, dQdsig_l, data_Y)
+    grad[2] = partial_derivative(Q_inv, dQdsig_n, data_Y)
+    return grad
+
+def neglogprob_grad(sig):
+    return -1 * logprob_grad(sig)
+
+INIT_SIG_F = 2.3
+INIT_SIG_L = -7.8
+INIT_SIG_N = 0
+INIT_SIG = np.array([INIT_SIG_F, INIT_SIG_L, INIT_SIG_N])
+
+res = minimize(neglogprob, INIT_SIG, method='BFGS', jac=neglogprob_grad, options={'disp': True})
+print(res.x)
+
+SIG_F = res.x[0]
+SIG_L = res.x[1]
+SIG_N = res.x[2]
+
+m_y = np.reshape(np.array([0, 0, 0]), (3,1))
 sample_X = np.arange(0, 500, 1)
 sample_X = np.reshape(sample_X, (sample_X.shape[0], 1))
-m_f = np.zeros((sample_X.shape[0],))
+m_f = np.zeros((sample_X.shape[0], 1))
 
 sample_mean, sample_cov_mat = define_GP(data_X, data_Y, m_y, m_f, sample_X, SIG_F, SIG_L, SIG_N)
+sample_mean = np.ravel(sample_mean)
 sample_var = np.array([sample_cov_mat[i][i] for i in range(sample_cov_mat.shape[0])])
 
-print(sample_mean)
-print(sample_var)
+print(sample_mean.shape)
+print(sample_var.shape)
 plt.figure(0)
 plt.plot(sample_X, sample_mean, color='r')
 plt.plot(sample_X, sample_mean + 2 * sample_var, color='b')
 plt.plot(sample_X, sample_mean - 2 * sample_var, color='b')
+plt.scatter(np.ravel(data_X), np.ravel(data_Y), c='g')
 plt.show()
