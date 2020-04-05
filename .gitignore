@@ -1,4 +1,6 @@
+*data
 *.swp
 *_set
 *.png
 *.npy
+*.zip
