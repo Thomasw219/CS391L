@@ -1,8 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from scipy.optimize import minimize
-
 def delta(x_1, x_2):
     if np.array_equal(x_1, x_2):
         return 1
@@ -60,6 +58,7 @@ def dkdsig_n(x_1, x_2, sig_f, sig_l, sig_n):
 def logprob(sig, *args):
     data_X = args[0]
     data_Y = args[1]
+    N = args[2]
 
     sig_f = sig[0]
     sig_l = sig[1]
@@ -70,7 +69,7 @@ def logprob(sig, *args):
     term1 = -1 / 2 * np.matmul(np.matmul(np.transpose(data_Y), Q_inv), data_Y)
     term2 = -1 / 2 * np.log(np.linalg.det(Q))
     term3 = N / 2 * np.log(2 * np.pi)
-    return term1 + term2 + term3
+    return np.asscalar(term1 + term2 + term3)
 
 def neglogprob(sig, *args):
     return -1 * logprob(sig, *args)
@@ -103,35 +102,3 @@ def logprob_grad(sig, *args):
 
 def neglogprob_grad(sig, *args):
     return -1 * logprob_grad(sig, *args)
-
-INIT_SIG_F = 2.3
-INIT_SIG_L = -7.8
-INIT_SIG_N = 0
-INIT_SIG = np.array([INIT_SIG_F, INIT_SIG_L, INIT_SIG_N])
-
-N = 4
-data_X = np.reshape(np.array([204, 90, 150, 400]), (N, 1))
-data_Y = np.reshape(np.array([-7, -18, -10, 20]), (N, 1))
-
-res = minimize(neglogprob, INIT_SIG, args=(data_X, data_Y), method='BFGS', jac=neglogprob_grad, options={'disp': True})
-print(res.x)
-
-SIG_F = res.x[0]
-SIG_L = res.x[1]
-SIG_N = res.x[2]
-
-m_y = np.zeros((N,1))
-sample_X = np.arange(0, 500, 1)
-sample_X = np.reshape(sample_X, (sample_X.shape[0], 1))
-m_f = np.zeros((sample_X.shape[0], 1))
-
-sample_mean, sample_cov_mat = define_GP(data_X, data_Y, m_y, m_f, sample_X, SIG_F, SIG_L, SIG_N)
-sample_mean = np.ravel(sample_mean)
-sample_var = np.array([sample_cov_mat[i][i] for i in range(sample_cov_mat.shape[0])])
-
-plt.figure(0)
-plt.plot(sample_X, sample_mean, color='r')
-plt.plot(sample_X, sample_mean + 2 * sample_var, color='b')
-plt.plot(sample_X, sample_mean - 2 * sample_var, color='b')
-plt.scatter(np.ravel(data_X), np.ravel(data_Y), c='g')
-plt.show()

@@ -1,7 +1,8 @@
 import os
 import pandas as pd
+import numpy as np
 
-ROOT = "./data_GP/"
+ROOT = "./GP_data/"
 
 def get_data():
     dirs = os.listdir(ROOT)
@@ -22,13 +23,18 @@ def get_data():
 
     return data
 
-def get_marker_data(data, marker):
+def get_marker_data(data, marker, coord):
     s = str(marker)
-    cols = ['elapsed_time', s + '_x', s + '_y', s + '_z', s + '_c']
+    cols = ['elapsed_time', s + '_' + coord, s + '_c']
     sub = data[cols]
     return sub[sub[s + '_c'] > 0]
 
-data = get_data()
-run = data['YX'][0]
-data_1 = get_marker_data(run, 1)
-print(data_1)
+def restrict_times(df, t_i, t_f):
+    temp = df[df['elapsed_time'] >= t_i]
+    return temp[temp['elapsed_time'] <= t_f]
+
+def to_matrices(df):
+    mat = df.to_numpy(dtype=float)
+    X = np.reshape(mat[:, 0], (mat.shape[0], 1))
+    Y = np.reshape(mat[:, 1], (mat.shape[0], 1))
+    return X, Y
