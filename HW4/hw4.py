@@ -6,14 +6,14 @@ from gp import *
 from data import *
 
 T_I = 0
-T_F = 10
+T_F = 20
 N_SAMPLES = 100
 
 data = get_data()
-run = data['YX'][0]
-data_1 = get_marker_data(run, 1, 'x')
-data_1 = restrict_times(data_1, T_I, T_F)
-X, Y = to_matrices(data_1)
+run = get_all_data(data, 'AG')
+marker_data = get_marker_data(run, 15, 'x')
+marker_data = restrict_times(marker_data, T_I, T_F)
+X, Y = to_matrices(marker_data)
 
 INIT_SIG_F = 0
 INIT_SIG_L = 0

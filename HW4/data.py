@@ -23,6 +23,16 @@ def get_data():
 
     return data
 
+def get_all_data(data, person, n_runs=5):
+    arr = data[person][0:n_runs]
+    df = None
+    for d in arr:
+        if df is None:
+            df = d.copy()
+        else:
+            df = df.append(d)
+    return df
+
 def get_marker_data(data, marker, coord):
     s = str(marker)
     cols = ['elapsed_time', s + '_' + coord, s + '_c']
