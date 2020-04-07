@@ -40,7 +40,8 @@ def get_marker_data(data, marker, coord):
     return sub[sub[s + '_c'] > 0]
 
 def restrict_times(df, t_i, t_f):
-    temp = df[df['elapsed_time'] >= t_i]
+    dcp = df.copy()
+    temp = dcp[dcp['elapsed_time'] >= t_i]
     return temp[temp['elapsed_time'] <= t_f]
 
 def to_matrices(df):
