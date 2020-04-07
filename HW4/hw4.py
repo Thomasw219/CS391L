@@ -8,19 +8,21 @@ from data import *
 def callback(xk):
     print(xk)
 
+DIR = './figures/optimize_from_last_params'
+
 X_SCALE = 10
 Y_SCALE = 10
 T_I = 0
 T_F = 17.5
 
+STEP = 0.05
 N_SAMPLES = 200
 INIT_SIG_F = 2.33219503
 INIT_SIG_L = -4.55283543
 INIT_SIG_N = -1.59004312
 INTERVAL = 2
-time_centers = np.arange(T_I, T_F, 0.25)
+time_centers = np.arange(T_I, T_F, STEP)
 """
-STEP = 0.25
 N_SAMPLES = 500
 INIT_SIG_F = 0
 INIT_SIG_L = 0
@@ -29,7 +31,7 @@ INTERVAL = 17.5
 time_centers = [8.75]
 """
 
-INIT_SIG = np.array([INIT_SIG_F, INIT_SIG_L, INIT_SIG_N])
+init_sig = np.array([INIT_SIG_F, INIT_SIG_L, INIT_SIG_N])
 
 data = get_data()
 run = get_all_data(data, 'AG')
@@ -55,12 +57,13 @@ for t in time_centers:
 
     N = X.shape[0]
 
-    res = minimize(neglogprob, np.copy(INIT_SIG), args=(X, Y - m_y, N), method='BFGS', jac=neglogprob_grad, options={'disp': True})
+    res = minimize(neglogprob, init_sig, args=(X, Y - m_y, N), method='BFGS', jac=neglogprob_grad, options={'disp': True})
     print(res.x)
 
     sig_f.append(res.x[0])
     sig_l.append(res.x[1])
     sig_n.append(res.x[2])
+    init_sig = np.ravel(res.x)
 
     sample_X = np.arange((t - INTERVAL / 2) * X_SCALE, (t + INTERVAL / 2) * X_SCALE, INTERVAL * X_SCALE / N_SAMPLES)
     sample_X = np.reshape(sample_X, (sample_X.shape[0], 1))
@@ -75,7 +78,7 @@ for t in time_centers:
     plt.plot(sample_X, sample_mean + 2 * sample_var, color='b')
     plt.plot(sample_X, sample_mean - 2 * sample_var, color='b')
     plt.scatter(np.ravel(X), np.ravel(Y), c='g')
-    plt.savefig('./figures/AG_15_X_center_' + str(t) + '_interval_' + str(INTERVAL) + '.png')
+    plt.savefig(DIR + '/AG_15_X_center_' + str(t) + '_interval_' + str(INTERVAL) + '.png')
     plt.close()
 
 print(sig_f)
@@ -94,4 +97,4 @@ plt.plot(bounds, init_sig_f, c='#ffcccb', label='initial sig_f')
 plt.plot(bounds, init_sig_l, c='#90ee90', label='initial sig_l')
 plt.plot(bounds, init_sig_n, c='#add8e6', label='initial sig_n')
 plt.legend()
-plt.savefig('./figures/AG_15_X_hyperparams.png')
+plt.savefig(DIR + '/AG_15_X_hyperparams.png')
