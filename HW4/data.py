@@ -30,7 +30,7 @@ def get_all_data(data, person, n_runs=5):
         if df is None:
             df = d.copy()
         else:
-            df = df.append(d)
+            df = df.append(d, sort=False)
     return df
 
 def get_marker_data(data, marker, coord):
