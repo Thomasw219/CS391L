@@ -46,6 +46,7 @@ for t in time_centers:
     print((t - INTERVAL / 2, t + INTERVAL / 2))
     print(N)
 #    indices = np.random.choice(N, size=min(N, N_SAMPLES), replace=False)
+    indices = np.random.choice(N, size=N, replace=False)
     X = X[indices] * X_SCALE
     Y = Y[indices] * Y_SCALE
 #    N = min(N, N_SAMPLES)
@@ -83,7 +84,7 @@ print(sig_n)
 bounds = [T_I, T_F]
 init_sig_f = [INIT_SIG_F, INIT_SIG_F]
 init_sig_l = [INIT_SIG_L, INIT_SIG_L]
-init_sig_n = [INIT_SIG_n, INIT_SIG_n]
+init_sig_n = [INIT_SIG_N, INIT_SIG_N]
 
 plt.figure(0)
 plt.plot(time_centers, sig_f, c='r', label='sig_f')

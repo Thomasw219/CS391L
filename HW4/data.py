@@ -27,16 +27,16 @@ def get_all_data(data, person, n_runs=5):
     arr = data[person][0:n_runs]
     df = None
     for d in arr:
-        d = d[d.index % 3 != 0]
+        dp = d.iloc[0::3]
         if df is None:
-            df = d.copy()
+            df = dp.copy()
         else:
-            df = df.append(d, sort=False)
+            df = df.append(dp, sort=False)
     return df
 
 def get_marker_data(data, marker, coord):
     s = str(marker)
-    cols = ['elapsed_time', s + '_' + coord, s + '_c']
+    cols = ['elapsed_time', s + '_' + coord, s + '_c', 'frame']
     sub = data[cols]
     return sub[sub[s + '_c'] > 0]
 
