@@ -27,6 +27,7 @@ def get_all_data(data, person, n_runs=5):
     arr = data[person][0:n_runs]
     df = None
     for d in arr:
+        d = d[d.index % 3 != 0]
         if df is None:
             df = d.copy()
         else:

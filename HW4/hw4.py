@@ -42,12 +42,13 @@ sig_n = []
 for t in time_centers:
     filtered_marker_data = restrict_times(marker_data, t - INTERVAL / 2, t + INTERVAL / 2)
     X, Y = to_matrices(filtered_marker_data)
-    print((t - INTERVAL / 2, t + INTERVAL / 2))
     N = X.shape[0]
-    indices = np.random.choice(N, size=min(N, N_SAMPLES), replace=False)
+    print((t - INTERVAL / 2, t + INTERVAL / 2))
+    print(N)
+#    indices = np.random.choice(N, size=min(N, N_SAMPLES), replace=False)
     X = X[indices] * X_SCALE
     Y = Y[indices] * Y_SCALE
-    N = min(N, N_SAMPLES)
+#    N = min(N, N_SAMPLES)
 
     m_y = np.ones((N, 1)) * np.mean(Y)
 
@@ -79,9 +80,17 @@ for t in time_centers:
 print(sig_f)
 print(sig_l)
 print(sig_n)
+bounds = [T_I, T_F]
+init_sig_f = [INIT_SIG_F, INIT_SIG_F]
+init_sig_l = [INIT_SIG_L, INIT_SIG_L]
+init_sig_n = [INIT_SIG_n, INIT_SIG_n]
+
 plt.figure(0)
 plt.plot(time_centers, sig_f, c='r', label='sig_f')
 plt.plot(time_centers, sig_l, c='g', label='sig_l')
 plt.plot(time_centers, sig_n, c='b', label='sig_n')
+plt.plot(bounds, init_sig_f, c='#ffcccb', label='initial sig_f')
+plt.plot(bounds, init_sig_l, c='#90ee90', label='initial sig_l')
+plt.plot(bounds, init_sig_n, c='#add8e6', label='initial sig_n')
 plt.legend()
 plt.savefig('./figures/AG_15_X_hyperparams.png')
