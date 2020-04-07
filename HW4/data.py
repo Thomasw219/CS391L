@@ -40,6 +40,11 @@ def get_marker_data(data, marker, coord):
     sub = data[cols]
     return sub[sub[s + '_c'] > 0]
 
+def get_target_data(data):
+    cols = ['elapsed_time', 'target_x', 'target_y', 'target_z']
+    sub = data[cols]
+    return sub
+
 def restrict_times(df, t_i, t_f):
     dcp = df.copy()
     temp = dcp[dcp['elapsed_time'] >= t_i]

@@ -16,6 +16,7 @@ T_I = 0
 T_F = 17.5
 
 STEP = 0.05
+"""
 N_SAMPLES = 200
 INIT_SIG_F = 2.33219503
 INIT_SIG_L = -4.55283543
@@ -24,12 +25,14 @@ INTERVAL = 2
 time_centers = np.arange(T_I, T_F, STEP)
 """
 N_SAMPLES = 500
-INIT_SIG_F = 0
-INIT_SIG_L = 0
-INIT_SIG_N = 0
+#INIT_SIG_F = 0
+#INIT_SIG_L = 0
+#INIT_SIG_N = 0
+INIT_SIG_F = 2.33219503
+INIT_SIG_L = -4.55283543
+INIT_SIG_N = -1.59004312
 INTERVAL = 17.5
 time_centers = [8.75]
-"""
 
 init_sig = np.array([INIT_SIG_F, INIT_SIG_L, INIT_SIG_N])
 
@@ -57,6 +60,7 @@ for t in time_centers:
 
     N = X.shape[0]
 
+    """
     res = minimize(neglogprob, init_sig, args=(X, Y - m_y, N), method='BFGS', jac=neglogprob_grad, options={'disp': True})
     print(res.x)
 
@@ -64,21 +68,25 @@ for t in time_centers:
     sig_l.append(res.x[1])
     sig_n.append(res.x[2])
     init_sig = np.ravel(res.x)
+    """
 
-    sample_X = np.arange((t - INTERVAL / 2) * X_SCALE, (t + INTERVAL / 2) * X_SCALE, INTERVAL * X_SCALE / N_SAMPLES)
+    sample_X = np.arange((t - INTERVAL / 2) * X_SCALE, (t + INTERVAL / 2) * X_SCALE, X_SCALE * STEP)
     sample_X = np.reshape(sample_X, (sample_X.shape[0], 1))
     m_f = np.ones((sample_X.shape[0], 1)) * np.mean(Y)
 
-    sample_mean, sample_cov_mat = define_GP(X, Y, m_y, m_f, sample_X, sig_f[-1], sig_l[-1], sig_n[-1])
+#    sample_mean, sample_cov_mat = define_GP(X, Y, m_y, m_f, sample_X, sig_f[-1], sig_l[-1], sig_n[-1])
+    sample_mean, sample_cov_mat = define_GP(X, Y, m_y, m_f, sample_X, INIT_SIG_F, INIT_SIG_L, INIT_SIG_N)
     sample_mean = np.ravel(sample_mean)
     sample_var = np.array([sample_cov_mat[i][i] for i in range(sample_cov_mat.shape[0])])
+    print(np.ndarray.tolist(sample_mean))
 
     plt.figure(0)
     plt.plot(sample_X, sample_mean, color='r')
     plt.plot(sample_X, sample_mean + 2 * sample_var, color='b')
     plt.plot(sample_X, sample_mean - 2 * sample_var, color='b')
     plt.scatter(np.ravel(X), np.ravel(Y), c='g')
-    plt.savefig(DIR + '/AG_15_X_center_' + str(t) + '_interval_' + str(INTERVAL) + '.png')
+#    plt.savefig(DIR + '/AG_15_X_center_' + str(t) + '_interval_' + str(INTERVAL) + '.png')
+    plt.savefig(DIR + '/hyperparams.png')
     plt.close()
 
 print(sig_f)
