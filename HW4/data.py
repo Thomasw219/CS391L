@@ -27,6 +27,7 @@ def get_all_data(data, person, n_runs=5):
     arr = data[person][0:n_runs]
     df = None
     for d in arr:
+#        dp = d.iloc[0::7].append(d.iloc[1::7])
         dp = d.iloc[0::3]
         if df is None:
             df = dp.copy()
