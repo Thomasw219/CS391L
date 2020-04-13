@@ -62,7 +62,9 @@ sig_l = np.load("./sig_l.npy")
 sig_n = np.load("./sig_n.npy")
 
 X, Y = to_matrices(marker_data)
-X = X * X_SCALE
+
+print(X.shape)
+exit()
 Y = Y * Y_SCALE
 
 third_data = get_marker_data(get_all_data(data, KEY, red=3), MARKER, DIM)
@@ -76,7 +78,7 @@ global_sum = 0
 local_sum = 0
 
 m_f = np.ones((X.shape[0], 1)) * np.mean(Y)
-global_mean, _ = define_GP(X_10, Y_10, m_y_10, m_f, X, INIT_SIG_F, INIT_SIG_L, INIT_SIG_N)
+global_mean, _ = define_GP(X_10, Y_10, m_y_10, m_f, X * X_SCALE, INIT_SIG_F, INIT_SIG_L, INIT_SIG_N)
 
 for i, x in enumerate(X):
     c_i = nearest_center_index(time_centers, np.asscalar(x))
@@ -85,7 +87,7 @@ for i, x in enumerate(X):
     X_3, Y_3 = to_matrices(filtered_marker_data)
 
     X_3 = X_3 * X_SCALE
-    Y_X = Y_3 * Y_SCALE
+    Y_3 = Y_3 * Y_SCALE
     N = X_3.shape[0]
 
     y = Y[i]
@@ -94,7 +96,7 @@ for i, x in enumerate(X):
 #    subset = np.array(filter_array(time_centers, t - INTERVAL / 2, t + INTERVAL / 2))
 #    subset = np.array(filter_array(time_centers, t - .025, t + .025))
 #    subset = np.reshape(subset, (subset.shape[0], 1)) * X_SCALE
-    subset = np.reshape(np.array([x]), (1, 1))
+    subset = np.reshape(np.array([x * X_SCALE]), (1, 1))
     m_f = np.ones((subset.shape[0], 1)) * np.mean(Y_3)
     local_mean, _ = define_GP(X_3, Y_3, m_y, m_f, subset, sig_f[c_i], sig_l[c_i], sig_n[c_i])
 
