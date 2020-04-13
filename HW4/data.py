@@ -23,12 +23,13 @@ def get_data():
 
     return data
 
-def get_all_data(data, person, n_runs=5):
+def get_all_data(data, person, n_runs=5, red=3):
     arr = data[person][0:n_runs]
     df = None
     for d in arr:
 #        dp = d.iloc[0::7].append(d.iloc[1::7])
-        dp = d.iloc[0::3]
+        r = np.random.choice(red)
+        dp = d.iloc[r::red]
         if df is None:
             df = dp.copy()
         else:
