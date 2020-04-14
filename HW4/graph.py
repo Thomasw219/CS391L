@@ -39,7 +39,7 @@ DIM = 'x'
 DIR = './figures/graphs'
 
 data = get_data()
-run = get_all_data(data, KEY)
+run = get_all_data(data, KEY, red=10)
 marker_data = get_marker_data(run, MARKER, DIM)
 
 bounds = [T_I, T_F]
@@ -47,6 +47,7 @@ init_sig_f = [INIT_SIG_F, INIT_SIG_F]
 init_sig_l = [INIT_SIG_L, INIT_SIG_L]
 init_sig_n = [INIT_SIG_N, INIT_SIG_N]
 
+"""
 local_means = {}
 for t in time_centers:
     local_means[t * X_SCALE] = []
@@ -71,10 +72,17 @@ for i, t in enumerate(time_centers):
         local_means[np.asscalar(subset[i])].append(sample_mean[i])
 
 averaged_means = [np.mean(local_means[t * X_SCALE]) for t in time_centers]
+"""
+
+filtered_marker_data = restrict_times(marker_data, 0, 17.5)
+X, Y = to_matrices(filtered_marker_data)
+Y = Y * Y_SCALE
 
 plt.figure(0)
 plt.plot(time_centers, means, c='r', label='Global Params Mean')
-plt.plot(time_centers, averaged_means, c='b', label='Local Params Mean')
+#plt.plot(time_centers, averaged_means, c='b', label='Local Params Mean')
+plt.scatter(X, Y, label='Collected Data')
 plt.legend()
-plt.savefig(DIR + '/mean_comparison.png')
+plt.savefig(DIR + '/AG_Full_fit.png')
 
+print("Done")

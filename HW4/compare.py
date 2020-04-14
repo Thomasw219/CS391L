@@ -54,33 +54,40 @@ def square_error(y1, y2):
     return (np.asscalar(y1) - np.asscalar(y2))**2
 
 data = get_data()
-run = get_all_data(data, KEY, red=1)
-marker_data = get_marker_data(run, MARKER, DIM)
 
 sig_f = np.load("./sig_f.npy")
 sig_l = np.load("./sig_l.npy")
 sig_n = np.load("./sig_n.npy")
 
-X, Y = to_matrices(marker_data)
-
-print(X.shape)
-exit()
-Y = Y * Y_SCALE
-
-third_data = get_marker_data(get_all_data(data, KEY, red=3), MARKER, DIM)
-tenth_data = get_marker_data(get_all_data(data, KEY, red=10), MARKER, DIM)
+data_3_train, data_3_test = get_all_data(data, KEY, red=3)
+third_data = get_marker_data(data_3_train, MARKER, DIM)
+third_test = get_marker_data(data_3_test, MARKER, DIM)
+data_10_train, data_10_test = get_all_data(data, KEY, red=10)
+tenth_data = get_marker_data(data_10_train, MARKER, DIM)
+tenth_test = get_marker_data(data_10_test, MARKER, DIM)
 X_10, Y_10 = to_matrices(tenth_data)
 X_10 = X_10 * X_SCALE
 Y_10 = Y_10 * Y_SCALE
+X_10_test, Y_10_test = to_matrices(tenth_test)
+X_10_test = X_10_test * X_SCALE
+Y_10_test = Y_10_test * Y_SCALE
+X_3_test, Y_3_test = to_matrices(third_test)
+Y_3_test = Y_3_test * Y_SCALE
 m_y_10 = np.ones(Y_10.shape) * np.mean(Y_10)
+print(X_10_test.shape)
+print(X_3_test.shape)
 
 global_sum = 0
 local_sum = 0
 
-m_f = np.ones((X.shape[0], 1)) * np.mean(Y)
-global_mean, _ = define_GP(X_10, Y_10, m_y_10, m_f, X * X_SCALE, INIT_SIG_F, INIT_SIG_L, INIT_SIG_N)
+m_f = np.ones((X_10_test.shape[0], 1)) * np.mean(Y_10)
+global_mean, _ = define_GP(X_10, Y_10, m_y_10, m_f, X_10_test, INIT_SIG_F, INIT_SIG_L, INIT_SIG_N)
+for i, x in enumerate(X_10_test):
+    global_sum += square_error(global_mean[i], Y_10_test[i])
+    print("Global MSE: {}".format(global_sum / (i + 1)))
 
-for i, x in enumerate(X):
+
+for i, x in enumerate(X_3_test):
     c_i = nearest_center_index(time_centers, np.asscalar(x))
     t = time_centers[c_i]
     filtered_marker_data = restrict_times(third_data, t - INTERVAL / 2, t + INTERVAL / 2)
@@ -90,7 +97,7 @@ for i, x in enumerate(X):
     Y_3 = Y_3 * Y_SCALE
     N = X_3.shape[0]
 
-    y = Y[i]
+    y = Y_3_test[i]
     m_y = np.ones((N, 1)) * np.mean(Y_3)
 
 #    subset = np.array(filter_array(time_centers, t - INTERVAL / 2, t + INTERVAL / 2))
@@ -102,11 +109,8 @@ for i, x in enumerate(X):
 
 
     local_sum += square_error(local_mean, y)
-    global_sum += square_error(global_mean[i], y)
     print("x: {}\t center: {}".format(x, t))
-    print("Local prediction: {}\tGlobal prediction: {}\t True value: {}".format(local_mean, global_mean[i], y))
-    print("Local Sum: {}".format(local_sum))
-    print("Global Sum: {}".format(global_sum))
+    print("Local MSE: {}".format(local_sum / (i + 1)))
 
 
 

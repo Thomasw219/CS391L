@@ -26,15 +26,23 @@ def get_data():
 def get_all_data(data, person, n_runs=5, red=3):
     arr = data[person][0:n_runs]
     df = None
+    test_df = None
     for d in arr:
 #        dp = d.iloc[0::7].append(d.iloc[1::7])
         r = np.random.choice(red)
         dp = d.iloc[r::red]
+        test = d.iloc[0:0]
+        for i in range(red):
+            if i == r:
+                continue
+            test = test.append(d.iloc[i::red], sort=False)
         if df is None:
             df = dp.copy()
+            test_df = test
         else:
             df = df.append(dp, sort=False)
-    return df
+            test_df = test_df.append(test, sort=False)
+    return df, test_df
 
 def get_marker_data(data, marker, coord):
     s = str(marker)
