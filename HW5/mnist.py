@@ -37,7 +37,7 @@ test_images, test_labels = load_data('t10k', 10000)
 
 BIG_NUM = 1000000
 SMOL_NUM = 0.0000001
-ETA = 0.001
+ETA = 0.000005
 
 def L(y, x):
     s = 0
@@ -159,18 +159,43 @@ def update_matrices(dW_0, dW_1):
     W_0 -= ETA * dW_0
     W_1 -= ETA * dW_1
 
+def test_loss(test_images, test_labels):
+    n = test_images.shape[0]
+    s = 0
+    for i in range(n):
+        l = L(test_labels[i], forward(test_images[i]))
+        s += (1 / n) * l
+    return l
 
-NUM_ITER = 3
-print(forward(train_images[0]))
-print('loss', L(train_labels[0], forward(train_images[0])))
+
+NUM_ITER = 10
+BATCH_SIZE = 1
+test_images_subset = test_images[:100]
+test_labels_subset = test_labels[:100]
+initial_loss = test_loss(test_images_subset, test_labels_subset)
+print('Mean test loss: {}'.format(initial_loss))
+losses = [initial_loss]
 for i in range(NUM_ITER):
-    dW_0, dW_1 = compute_derivative_matrices(train_images[0], train_labels[0])
-    update_matrices(dW_0, dW_1)
-    print('dW_0', np.mean(dW_0))
-    print('dW_1', np.mean(dW_1))
+    sdW_0 = np.zeros(W_0.shape)
+    sdW_1 = np.zeros(W_1.shape)
+    indices = np.random.choice(60000, size=BATCH_SIZE, replace=False)
+    batch_images = train_images[indices]
+    batch_labels = train_labels[indices]
+    for j in range(BATCH_SIZE):
+        dW_0, dW_1 = compute_derivative_matrices(batch_images[j], train_labels[j])
+        sdW_0 += (1 / BATCH_SIZE) * dW_0
+        sdW_1 += (1 / BATCH_SIZE) * dW_1
 
-    print(forward(train_images[0]))
-    print('loss', L(train_labels[0], forward(train_images[0])))
+    update_matrices(sdW_0, sdW_1)
+    print('dW_0', np.mean(sdW_0))
+    print('dW_1', np.mean(sdW_1))
+
+    print(forward(batch_images[0]))
+    print(batch_labels[0])
+
+    epoch_loss = test_loss(test_images_subset, test_labels_subset)
+    print('Mean test loss: {}'.format(epoch_loss))
+    losses.append(epoch_loss)
 
 
 """
