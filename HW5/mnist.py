@@ -36,7 +36,8 @@ train_images, train_labels = load_data('train', 60000)
 test_images, test_labels = load_data('t10k', 10000)
 
 BIG_NUM = 1000000
-SMOL_NUM = 
+SMOL_NUM = 0.0000001
+ALPHA = 0.01
 
 def L(y, x):
     s = 0
@@ -52,7 +53,10 @@ def dLdx(y, x):
         if np.asscalar(x_i) == y_i:
             d[i] = 0
         else:
-            d[i] = np.asscalar(-1 * y_i / x_i + (1 - y_i)/(1 - x_i))
+            if np.asscalar(y_i) == 1.0:
+                d[i] = np.asscalar(-1 / x_i)
+            elif np.asscalar(y_i) == 0.0:
+                d[i] = np.asscalar(1/(1 - x_i))
             if d[i] == -1 * np.inf:
                 d[i] = -1 * BIG_NUM
             elif d[i] == np.inf:
@@ -60,7 +64,13 @@ def dLdx(y, x):
     return d
 
 def sig(x):
-    return 1 / (1 + np.exp(-1 * x))
+    real = 1 / (1 + np.exp(-1 * x))
+    if real == 0:
+        return SMOL_NUM
+    elif real == 1:
+        return 1 - SMOL_NUM
+    else:
+        return np.asscalar(real)
 
 def dsigdx(x):
     return sig(x) * (1 - sig(x))
@@ -74,7 +84,7 @@ def sig_act(x):
 def dsig_actdx(x):
     o = np.zeros(x.shape)
     for i, x_i in enumerate(x):
-        o[i] = np.asscalar(dsigdx(x_i))
+        o[i] = dsigdx(x_i)
     return o
 
 def ReLU(x):
@@ -104,8 +114,10 @@ W_1 = np.random.random_sample(size=(10, h))
 
 def forward(x0):
     y0 = np.matmul(W_0, x0)
+    print('y0', np.mean(y0))
     x1 = ReLU_act(y0)
     y1 = np.matmul(W_1, x1)
+    print('y1', np.mean(y1))
     x2 = sig_act(y1)
     return x2
 
@@ -120,24 +132,39 @@ def compute_derivative_matrices(x0, y):
     x1 = ReLU_act(y0)
     y1 = np.matmul(W_1, x1)
     x2 = sig_act(y1)
-    l2 = dLdx(x2, y)
+    l2 = dLdx(y, x2)
     L2 = to_diagonal(l2)
     l1 = np.matmul(np.transpose(W_1), np.matmul(L2, dsig_actdx(y1)))
+    print(l2)
 
     dW_1 = np.zeros(W_1.shape)
     for i in range(dW_1.shape[0]):
         for j in range(dW_1.shape[1]):
-            dW_1[i, j] = np.asscalar(l2[i] * x1[i] * dsigdx(np.dot(W_1[i, :], x1)))
+            dW_1[i, j] = np.asscalar(l2[i] * x1[j] * dsigdx(np.dot(W_1[i, :], x1)))
 
     dW_0 = np.zeros(W_0.shape)
     for i in range(dW_0.shape[0]):
         for j in range(dW_0.shape[1]):
-            dW_0[i, j] = np.asscalar(l1[i] * x0[i] * dReLUdx(np.dot(W_0[i, :], x0)))
+            dW_0[i, j] = np.asscalar(l1[i] * x0[j] * dReLUdx(np.dot(W_0[i, :], x0)))
 
     return dW_0, dW_1
 
+def update_matrices(dW_0, dW_1):
+    global W_0, W_1
+    W_0 -= ALPHA * dW_0
+    W_1 -= ALPHA * dW_1
 
-print(compute_derivative_matrices(train_images[0], train_labels[0]))
+
+NUM_ITER = 2
+for i in range(NUM_ITER):
+    print(forward(train_images[0]))
+    dW_0, dW_1 = compute_derivative_matrices(train_images[0], train_labels[0])
+    update_matrices(dW_0, dW_1)
+#print(dW_0)
+#print(dW_1)
+
+    print(forward(train_images[0]))
+
 
 """
 
