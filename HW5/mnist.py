@@ -37,7 +37,7 @@ test_images, test_labels = load_data('t10k', 10000)
 
 BIG_NUM = 1000000
 SMOL_NUM = 0.0000001
-ALPHA = 0.01
+ETA = 0.001
 
 def L(y, x):
     s = 0
@@ -114,10 +114,10 @@ W_1 = np.random.random_sample(size=(10, h))
 
 def forward(x0):
     y0 = np.matmul(W_0, x0)
-    print('y0', np.mean(y0))
+#print('y0', np.mean(y0))
     x1 = ReLU_act(y0)
     y1 = np.matmul(W_1, x1)
-    print('y1', np.mean(y1))
+#print('y1', np.mean(y1))
     x2 = sig_act(y1)
     return x2
 
@@ -135,7 +135,8 @@ def compute_derivative_matrices(x0, y):
     l2 = dLdx(y, x2)
     L2 = to_diagonal(l2)
     l1 = np.matmul(np.transpose(W_1), np.matmul(L2, dsig_actdx(y1)))
-    print(l2)
+#print(l2)
+#print(l1)
 
     dW_1 = np.zeros(W_1.shape)
     for i in range(dW_1.shape[0]):
@@ -146,24 +147,30 @@ def compute_derivative_matrices(x0, y):
     for i in range(dW_0.shape[0]):
         for j in range(dW_0.shape[1]):
             dW_0[i, j] = np.asscalar(l1[i] * x0[j] * dReLUdx(np.dot(W_0[i, :], x0)))
+            """
+            if dW_0[i, j] != 0:
+                print(dW_0[i, j])
+            """
 
     return dW_0, dW_1
 
 def update_matrices(dW_0, dW_1):
     global W_0, W_1
-    W_0 -= ALPHA * dW_0
-    W_1 -= ALPHA * dW_1
+    W_0 -= ETA * dW_0
+    W_1 -= ETA * dW_1
 
 
-NUM_ITER = 2
+NUM_ITER = 3
+print(forward(train_images[0]))
+print('loss', L(train_labels[0], forward(train_images[0])))
 for i in range(NUM_ITER):
-    print(forward(train_images[0]))
     dW_0, dW_1 = compute_derivative_matrices(train_images[0], train_labels[0])
     update_matrices(dW_0, dW_1)
-#print(dW_0)
-#print(dW_1)
+    print('dW_0', np.mean(dW_0))
+    print('dW_1', np.mean(dW_1))
 
     print(forward(train_images[0]))
+    print('loss', L(train_labels[0], forward(train_images[0])))
 
 
 """
