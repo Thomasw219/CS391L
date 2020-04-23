@@ -120,6 +120,14 @@ def dSMdx(x, W, l):
         d[i] = np.matmul(np.transpose(l), np.matmul(mat, np.reshape(W[:, i], (m, 1))))
     return d
 
+def dSMdwij(x, W, l, i, j):
+    m = W.shape[0]
+    mat = np.zeros((m, 1))
+    z = np.matmul(W, x)
+    for row in range(m):
+        mat[row] = dSMdz(z, row, i)
+    return np.matmul(np.transpose(l), mat * np.asscalar(x[j]))
+
 def sig(x):
     real = 1 / (1 + np.exp(-1 * x))
     if real == 0:
@@ -168,12 +176,12 @@ def dReLU_actdx(x):
 h = 200
 W_0 = np.random.randn(h, num_pixels) / 10
 W_1 = np.random.randn(10, h) / 10
-ETA = 0.005
+ETA = 0.01
 
 def forward(x0):
     y0 = np.matmul(W_0, x0)
-#    x1 = ReLU_act(y0)
-    x1 = sig_act(y0)
+    x1 = ReLU_act(y0)
+#    x1 = sig_act(y0)
     y1 = np.matmul(W_1, x1)
 #    x2 = sig_act(y1)
     x2 = SM(y1)
@@ -187,8 +195,8 @@ def to_diagonal(x):
 
 def compute_derivative_matrices(x0, y):
     y0 = np.matmul(W_0, x0)
-#    x1 = ReLU_act(y0)
-    x1 = sig_act(y0)
+    x1 = ReLU_act(y0)
+#    x1 = sig_act(y0)
     y1 = np.matmul(W_1, x1)
 #    x2 = sig_act(y1)
     x2 = SM(y1)
@@ -209,13 +217,14 @@ def compute_derivative_matrices(x0, y):
     dW_1 = np.zeros(W_1.shape)
     for i in range(dW_1.shape[0]):
         for j in range(dW_1.shape[1]):
-            dW_1[i, j] = np.asscalar(l2[i] * x1[j] * dsigdx(np.dot(W_1[i, :], x1)))
+#            dW_1[i, j] = np.asscalar(l2[i] * x1[j] * dsigdx(np.dot(W_1[i, :], x1)))
+            dW_1[i, j] = np.asscalar(dSMdwij(x1, W_1, l2, i, j))
 
     dW_0 = np.zeros(W_0.shape)
     for i in range(dW_0.shape[0]):
         for j in range(dW_0.shape[1]):
-#            dW_0[i, j] = np.asscalar(l1[i] * x0[j] * dReLUdx(np.dot(W_0[i, :], x0)))
-            dW_0[i, j] = np.asscalar(l1[i] * x0[j] * dsigdx(np.dot(W_0[i, :], x0)))
+            dW_0[i, j] = np.asscalar(l1[i] * x0[j] * dReLUdx(np.dot(W_0[i, :], x0)))
+#            dW_0[i, j] = np.asscalar(l1[i] * x0[j] * dsigdx(np.dot(W_0[i, :], x0)))
             """
             if dW_0[i, j] != 0:
                 print(dW_0[i, j])
@@ -241,8 +250,8 @@ def test_loss_accuracy(test_images, test_labels):
     return l, c / n
 
 NUM_ITER = 100
-BATCH_SIZE = 16
-#BATCH_SIZE = 1
+#BATCH_SIZE = 32
+BATCH_SIZE = 1
 
 mean = np.mean(train_images, axis=0)
 std = np.std(train_images, axis=0)
@@ -262,8 +271,8 @@ for i in range(NUM_ITER):
     print("Episode {}".format(i+1))
     sdW_0 = np.zeros(W_0.shape)
     sdW_1 = np.zeros(W_1.shape)
-    indices = np.random.choice(60000, size=BATCH_SIZE, replace=False)
-#    indices = np.random.choice(1, size=BATCH_SIZE, replace=False)
+#    indices = np.random.choice(60000, size=BATCH_SIZE, replace=False)
+    indices = np.random.choice(1, size=BATCH_SIZE, replace=False)
     batch_images = train_images[indices]
     batch_labels = train_labels[indices]
     for j in range(BATCH_SIZE):
