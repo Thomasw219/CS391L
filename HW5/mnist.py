@@ -32,6 +32,13 @@ def load_data(s, num_images):
         onehot[i, l, 0] = 1
     return data, onehot
 
+def normalize_data(data, mean, std):
+    for i, s in enumerate(std):
+        std[i] = max(s, 0.1)
+    for i, x_i in enumerate(data):
+        data[i] = (x_i - mean) / std
+    return data
+
 train_images, train_labels = load_data('train', 60000)
 test_images, test_labels = load_data('t10k', 10000)
 
@@ -159,8 +166,8 @@ def dReLU_actdx(x):
     return o
 
 h = 200
-W_0 = np.random.randn(h, num_pixels) * (1 / 20)
-W_1 = np.random.randn(10, h) * (1 / 20)
+W_0 = np.random.randn(h, num_pixels) / 10
+W_1 = np.random.randn(10, h) / 10
 ETA = 0.005
 
 def forward(x0):
@@ -236,11 +243,17 @@ def test_loss_accuracy(test_images, test_labels):
 NUM_ITER = 100
 BATCH_SIZE = 16
 #BATCH_SIZE = 1
+
+mean = np.mean(train_images, axis=0)
+std = np.std(train_images, axis=0)
+train_images = normalize_data(train_images, mean, std)
+test_images = normalize_data(test_images, mean, std)
+
 test_images_subset = test_images[:500]
 test_labels_subset = test_labels[:500]
 initial_loss, initial_accuracy = test_loss_accuracy(test_images_subset, test_labels_subset)
-#print(forward(train_images[0]))
-#print(train_labels[0])
+print(forward(train_images[0]))
+print(train_labels[0])
 print('Mean test loss: {}'.format(initial_loss))
 print('Mean test accuracy: {}'.format(initial_accuracy))
 losses = [initial_loss]
