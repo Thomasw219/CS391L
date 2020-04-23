@@ -35,9 +35,23 @@ def load_data(s, num_images):
 train_images, train_labels = load_data('train', 60000)
 test_images, test_labels = load_data('t10k', 10000)
 
-BIG_NUM = 1000000
-SMOL_NUM = 0.0000001
-ETA = 0.000005
+BIG_NUM = 10000000000000000
+SMOL_NUM = 0.000000000000001
+ETA = 1
+
+def MSE(y, x):
+    s = 0
+    for i, x_i in enumerate(x):
+        y_i = y[i]
+        s += np.power((y_i - x_i), 2)
+    return np.asscalar(s)
+
+def dMSEdx(y, x):
+    d = np.zeros(x.shape)
+    for i, x_i in enumerate(x):
+        y_i = y[i]
+        d[i] = np.asscalar(x_i - y_i)
+    return d
 
 def L(y, x):
     s = 0
@@ -109,15 +123,13 @@ def dReLU_actdx(x):
     return o
 
 h = 100
-W_0 = np.random.random_sample(size=(h, num_pixels))
-W_1 = np.random.random_sample(size=(10, h))
+W_0 = np.random.randn(h, num_pixels) * (1 / 10)
+W_1 = np.random.randn(10, h) * (1 / 10)
 
 def forward(x0):
     y0 = np.matmul(W_0, x0)
-#print('y0', np.mean(y0))
     x1 = ReLU_act(y0)
     y1 = np.matmul(W_1, x1)
-#print('y1', np.mean(y1))
     x2 = sig_act(y1)
     return x2
 
@@ -129,14 +141,18 @@ def to_diagonal(x):
 
 def compute_derivative_matrices(x0, y):
     y0 = np.matmul(W_0, x0)
+#    print('y0', np.mean(y0))
     x1 = ReLU_act(y0)
     y1 = np.matmul(W_1, x1)
+#    print('y1', np.mean(y1))
     x2 = sig_act(y1)
-    l2 = dLdx(y, x2)
+    l2 = dMSEdx(y, x2)
     L2 = to_diagonal(l2)
     l1 = np.matmul(np.transpose(W_1), np.matmul(L2, dsig_actdx(y1)))
 #print(l2)
-#print(l1)
+#    print('l2', l2)
+#    print(x2)
+#    print(y)
 
     dW_1 = np.zeros(W_1.shape)
     for i in range(dW_1.shape[0]):
@@ -163,22 +179,25 @@ def test_loss(test_images, test_labels):
     n = test_images.shape[0]
     s = 0
     for i in range(n):
-        l = L(test_labels[i], forward(test_images[i]))
+        l = MSE(test_labels[i], forward(test_images[i]))
         s += (1 / n) * l
     return l
 
 
-NUM_ITER = 10
-BATCH_SIZE = 1
-test_images_subset = test_images[:100]
-test_labels_subset = test_labels[:100]
+NUM_ITER = 100
+BATCH_SIZE = 16
+test_images_subset = test_images[:500]
+test_labels_subset = test_labels[:500]
 initial_loss = test_loss(test_images_subset, test_labels_subset)
 print('Mean test loss: {}'.format(initial_loss))
 losses = [initial_loss]
 for i in range(NUM_ITER):
+    print("===============================")
+    print("Episode {}".format(i+1))
     sdW_0 = np.zeros(W_0.shape)
     sdW_1 = np.zeros(W_1.shape)
     indices = np.random.choice(60000, size=BATCH_SIZE, replace=False)
+#    indices = np.random.choice(1, size=BATCH_SIZE, replace=False)
     batch_images = train_images[indices]
     batch_labels = train_labels[indices]
     for j in range(BATCH_SIZE):
@@ -187,8 +206,8 @@ for i in range(NUM_ITER):
         sdW_1 += (1 / BATCH_SIZE) * dW_1
 
     update_matrices(sdW_0, sdW_1)
-    print('dW_0', np.mean(sdW_0))
-    print('dW_1', np.mean(sdW_1))
+#    print('dW_0', np.mean(sdW_0))
+#    print('dW_1', np.mean(sdW_1))
 
     print(forward(batch_images[0]))
     print(batch_labels[0])
