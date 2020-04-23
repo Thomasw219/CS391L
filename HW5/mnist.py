@@ -161,7 +161,7 @@ def dReLU_actdx(x):
 h = 200
 W_0 = np.random.randn(h, num_pixels) * (1 / 20)
 W_1 = np.random.randn(10, h) * (1 / 20)
-ETA = 0.01
+ETA = 0.005
 
 def forward(x0):
     y0 = np.matmul(W_0, x0)
@@ -221,32 +221,36 @@ def update_matrices(dW_0, dW_1):
     W_0 -= ETA * dW_0
     W_1 -= ETA * dW_1
 
-def test_loss(test_images, test_labels):
+def test_loss_accuracy(test_images, test_labels):
     n = test_images.shape[0]
     s = 0
+    c = 0
     for i in range(n):
-        l = CCE(test_labels[i], forward(test_images[i]))
+        f = forward(test_images[i])
+        l = CCE(test_labels[i], f)
         s += (1 / n) * l
-    return l
-
+        if test_labels[i, np.argmax(f)] == 1:
+            c += 1
+    return l, c / n
 
 NUM_ITER = 100
-#BATCH_SIZE = 16
-BATCH_SIZE = 1
+BATCH_SIZE = 16
+#BATCH_SIZE = 1
 test_images_subset = test_images[:500]
 test_labels_subset = test_labels[:500]
-initial_loss = test_loss(test_images_subset, test_labels_subset)
-print(forward(train_images[0]))
-print(train_labels[0])
+initial_loss, initial_accuracy = test_loss_accuracy(test_images_subset, test_labels_subset)
+#print(forward(train_images[0]))
+#print(train_labels[0])
 print('Mean test loss: {}'.format(initial_loss))
+print('Mean test accuracy: {}'.format(initial_accuracy))
 losses = [initial_loss]
 for i in range(NUM_ITER):
     print("===============================")
     print("Episode {}".format(i+1))
     sdW_0 = np.zeros(W_0.shape)
     sdW_1 = np.zeros(W_1.shape)
-#    indices = np.random.choice(60000, size=BATCH_SIZE, replace=False)
-    indices = np.random.choice(1, size=BATCH_SIZE, replace=False)
+    indices = np.random.choice(60000, size=BATCH_SIZE, replace=False)
+#    indices = np.random.choice(1, size=BATCH_SIZE, replace=False)
     batch_images = train_images[indices]
     batch_labels = train_labels[indices]
     for j in range(BATCH_SIZE):
@@ -261,8 +265,9 @@ for i in range(NUM_ITER):
     print(forward(batch_images[0]))
     print(batch_labels[0])
 
-    epoch_loss = test_loss(test_images_subset, test_labels_subset)
+    epoch_loss, epoch_accuracy = test_loss_accuracy(test_images_subset, test_labels_subset)
     print('Mean test loss: {}'.format(epoch_loss))
+    print('Mean test accuracy: {}'.format(epoch_accuracy))
     losses.append(epoch_loss)
 
 
