@@ -56,17 +56,19 @@ def rescale_qval(q_val, max_q, min_q):
 
 def full_state_act(full_state, action):
     new_position = act_position(full_state.position, action)
+    if not in_bounds(new_position, 0, FULL_GRID_X - 1, 0, FULL_GRID_Y - 1):
+        new_position = full_state.position
     full_state.litter[new_position[0], new_position[1]] = 0
     return FullState(new_position, full_state.litter, full_state.obstacles)
 
-np.random.seed(0)
+np.random.seed(1)
 full_state = create_full_state()
 init_litter = np.copy(full_state.litter)
 
-W_LITTER = 0.375
-W_OBSTACLES = 0.375
-W_SIDEWALK = 0.125
-W_FORWARD = 0.125
+W_LITTER = 0.75
+W_OBSTACLES = 0
+W_SIDEWALK = 0
+W_FORWARD = 0.25
 
 litter_padding = LITTER_GRID_DIM // 2
 obstacles_padding = OBSTACLES_GRID_DIM // 2
