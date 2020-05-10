@@ -4,7 +4,7 @@ import pickle
 
 from collections import namedtuple
 
-FullState = namedtuple('FullState', 'position obstacles litter')
+FullState = namedtuple('FullState', 'position litter obstacles')
 
 EPSILON = 0.5
 GAMMA = 0.90
@@ -226,57 +226,58 @@ for i in range(num_actions):
     print("Reward: {}".format(train_litter_reward(init, i, after_act)))
 """
 
-ITERS_PER = 10000
-q_table = {}
-avg_deltas = []
-episodes = []
+if __name__=="__main__":
+    ITERS_PER = 10000
+    q_table = {}
+    avg_deltas = []
+    episodes = []
 
-for i in range(50):
-    """
-    # The training for litter collection
-    q_table, avg_delta = train(ITERS_PER, q_table, train_litter_act, train_litter_reward, select_action, train_litter_initial_grid, litter_is_terminal)
-    # Training for obstacle avoidance
-    q_table, avg_delta = train(ITERS_PER, q_table, train_obstacles_act, train_obstacles_reward, select_action, train_obstacles_initial_grid, obstacles_is_terminal)
-    # Training for sidewalk
-    q_table, avg_delta = train(ITERS_PER, q_table, train_position_act, train_sidewalk_reward, select_action, train_initial_position, position_is_terminal)
-    """
-    q_table, avg_delta = train(ITERS_PER, q_table, train_position_act, train_forward_reward, select_action, train_initial_position, position_is_terminal)
-    avg_deltas.append(avg_delta)
-    episodes.append(i + 1)
-    print("Iterations Trained: {}".format((i + 1) * ITERS_PER))
-    print("Q table entries: {}".format(len(q_table.keys())))
-    pair = q_table.popitem()
-    q_table[pair[0]] = pair[1]
-    state = pair[0][0]
-    #print("State:\n{}".format(tuple_to_ndarray(state, LITTER_GRID_DIM)))
-    #print("State:\n{}".format(tuple_to_ndarray(state, OBSTACLES_GRID_DIM)))
-    print("State: {}".format(state))
-    opt = get_argmax(q_table, state)
-    print("Optimal Action: {}".format(action_map[opt]))
-    print("Q value: {}".format(get_q_val(q_table, (ndarray_to_tuple(state), opt))))
+    for i in range(50):
+        """
+        # The training for litter collection
+        q_table, avg_delta = train(ITERS_PER, q_table, train_litter_act, train_litter_reward, select_action, train_litter_initial_grid, litter_is_terminal)
+        # Training for obstacle avoidance
+        q_table, avg_delta = train(ITERS_PER, q_table, train_obstacles_act, train_obstacles_reward, select_action, train_obstacles_initial_grid, obstacles_is_terminal)
+        # Training for sidewalk
+        q_table, avg_delta = train(ITERS_PER, q_table, train_position_act, train_sidewalk_reward, select_action, train_initial_position, position_is_terminal)
+        """
+        q_table, avg_delta = train(ITERS_PER, q_table, train_position_act, train_forward_reward, select_action, train_initial_position, position_is_terminal)
+        avg_deltas.append(avg_delta)
+        episodes.append(i + 1)
+        print("Iterations Trained: {}".format((i + 1) * ITERS_PER))
+        print("Q table entries: {}".format(len(q_table.keys())))
+        pair = q_table.popitem()
+        q_table[pair[0]] = pair[1]
+        state = pair[0][0]
+        #print("State:\n{}".format(tuple_to_ndarray(state, LITTER_GRID_DIM)))
+        #print("State:\n{}".format(tuple_to_ndarray(state, OBSTACLES_GRID_DIM)))
+        print("State: {}".format(state))
+        opt = get_argmax(q_table, state)
+        print("Optimal Action: {}".format(action_map[opt]))
+        print("Q value: {}".format(get_q_val(q_table, (ndarray_to_tuple(state), opt))))
 
-    """
-    with open('pickle_files/litter_qtable.pickle', 'wb') as handle:
-        pickle.dump(q_table, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        """
+        with open('pickle_files/litter_qtable.pickle', 'wb') as handle:
+            pickle.dump(q_table, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    plt.figure(0)
-    plt.plot(episodes, avg_deltas)
-    plt.savefig('figures/litter_training.png')
-    plt.close()
+        plt.figure(0)
+        plt.plot(episodes, avg_deltas)
+        plt.savefig('figures/litter_training.png')
+        plt.close()
 
-    with open('pickle_files/obstacles_qtable.pickle', 'wb') as handle:
-        pickle.dump(q_table, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        with open('pickle_files/obstacles_qtable.pickle', 'wb') as handle:
+            pickle.dump(q_table, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    plt.figure(0)
-    plt.plot(episodes, avg_deltas)
-    plt.savefig('figures/obstacles_training.png')
-    plt.close()
-    """
+        plt.figure(0)
+        plt.plot(episodes, avg_deltas)
+        plt.savefig('figures/obstacles_training.png')
+        plt.close()
+        """
 
-    with open('pickle_files/forward_qtable.pickle', 'wb') as handle:
-        pickle.dump(q_table, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        with open('pickle_files/forward_qtable.pickle', 'wb') as handle:
+            pickle.dump(q_table, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    plt.figure(0)
-    plt.plot(episodes, avg_deltas)
-    plt.savefig('figures/forward_training.png')
-    plt.close()
+        plt.figure(0)
+        plt.plot(episodes, avg_deltas)
+        plt.savefig('figures/forward_training.png')
+        plt.close()
