@@ -166,8 +166,12 @@ ITERS_PER = 10000
 q_table = {}
 avg_deltas = []
 episodes = []
+
 for i in range(200):
+    """
+    # The training for litter collection
     q_table, avg_delta = train(ITERS_PER, q_table, train_litter_act, train_litter_reward, litter_select_action, train_litter_initial_grid, litter_is_terminal)
+    """
     avg_deltas.append(avg_delta)
     episodes.append(i + 1)
     print("Iterations Trained: {}".format((i + 1) * ITERS_PER))
@@ -180,6 +184,7 @@ for i in range(200):
     print("Optimal Action: {}".format(action_map[opt]))
     print("Q value: {}".format(get_q_val(q_table, (ndarray_to_tuple(state), opt))))
 
+    """
     with open('pickle_files/litter_qtable.pickle', 'wb') as handle:
         pickle.dump(q_table, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -187,4 +192,6 @@ for i in range(200):
     plt.plot(episodes, avg_deltas)
     plt.savefig('figures/litter_training.png')
     plt.close()
+    """
+
 
