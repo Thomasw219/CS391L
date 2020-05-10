@@ -43,12 +43,23 @@ def show_full_state(x, y, full_state):
             obstacles_x.append(position[0])
             obstacles_y.append(position[1])
 
-    plt.scatter(obstacles_y, obstacles_x, c='b')
-    plt.scatter(litter_y, litter_x, c='g', marker='D')
-    plt.plot(y, x)
+    plt.scatter(obstacles_y, obstacles_x, c='b', label='Obstacles')
+    plt.scatter(litter_y, litter_x, c='g', marker='D', label='Litter')
+    plt.plot(y, x, label="Path")
+    plt.legend()
     plt.show()
 
+np.random.seed(0)
 full_state = create_full_state()
-print(full_state)
+init_litter = full_state.litter()
+
+litter_padding = LITTER_GRID_DIM // 2
+obstacles_padding = OBSTACLES_GRID_DIM // 2
+padded_litter = np.zeros((FULL_GRID_X + 2 * litter_padding, FULL_GRID_Y + 2 * litter_padding))
+padded_obstacles = np.zeros((FULL_GRID_X + 2 * obstacle_padding, FULL_GRID_Y + 2 * obstacle_padding))
+padded_obstacles[obstacle_padding:obstacle_padding + FULL_GRID_X, obstacle_padding:obstacle_padding + FULL_GRID_Y] = full_state.obstacles
+while not position_is_terminal(full_state.position):
+    padded_litter[litter_padding:litter_padding + FULL_GRID_X, litter_padding:litter_padding + FULL_GRID_Y] = full_state.litter
+
 
 show_full_state([], [], full_state)
