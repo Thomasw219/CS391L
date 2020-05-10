@@ -54,32 +54,37 @@ def rescale_qval(q_val, max_q, min_q):
         return 0.5
     return (q_val - min_q) / (max_q - min_q)
 
+def full_state_act(full_state, action):
+    new_position = act_position(full_state.position, action)
+    full_state.litter[new_position[0], new_position[1]] = 0
+    return FullState(new_position, full_state.litter, full_state.obstacles)
+
 np.random.seed(0)
 full_state = create_full_state()
-init_litter = full_state.litter()
+init_litter = np.copy(full_state.litter)
 
-W_LITTER = 0.25
-W_OBSTACLES = 0.25
-W_SIDEWALK = 0.25
-W_FORWARD = 0.25
+W_LITTER = 0.375
+W_OBSTACLES = 0.375
+W_SIDEWALK = 0.125
+W_FORWARD = 0.125
 
 litter_padding = LITTER_GRID_DIM // 2
 obstacles_padding = OBSTACLES_GRID_DIM // 2
 padded_litter = np.zeros((FULL_GRID_X + 2 * litter_padding, FULL_GRID_Y + 2 * litter_padding))
-padded_obstacles = np.zeros((FULL_GRID_X + 2 * obstacle_padding, FULL_GRID_Y + 2 * obstacle_padding))
-padded_obstacles[obstacle_padding:obstacle_padding + FULL_GRID_X, obstacle_padding:obstacle_padding + FULL_GRID_Y] = full_state.obstacles
+padded_obstacles = np.zeros((FULL_GRID_X + 2 * obstacles_padding, FULL_GRID_Y + 2 * obstacles_padding))
+padded_obstacles[obstacles_padding:obstacles_padding + FULL_GRID_X, obstacles_padding:obstacles_padding + FULL_GRID_Y] = full_state.obstacles
 position_xs = [full_state.position[0]]
 position_ys = [full_state.position[1]]
 while not position_is_terminal(full_state.position):
     x, y = full_state.position
     padded_litter[litter_padding:litter_padding + FULL_GRID_X, litter_padding:litter_padding + FULL_GRID_Y] = full_state.litter
     litter_grid = padded_litter[x: x + 2 * litter_padding + 1, y: y + 2 * litter_padding + 1]
-    obstacle_grid = padded_obstacles[x: x + 2 * obstacles_padding + 1, y: y + 2 * obstacles_padding + 1]
+    obstacles_grid = padded_obstacles[x: x + 2 * obstacles_padding + 1, y: y + 2 * obstacles_padding + 1]
     q_val_mins = np.ones((num_modules,)) * 100000
     q_val_maxes = np.ones((num_modules,)) * -100000
     for action in range(num_actions):
-        litter_q_val = get_q_val(litter_qtable, (ndarray_to_tuple(litter_grid, action))
-        obsctacles_q_val = get_q_val(obstacles_qtable, (ndarray_to_tuple(obstacles_grid), action))
+        litter_q_val = get_q_val(litter_qtable, (ndarray_to_tuple(litter_grid), action))
+        obstacles_q_val = get_q_val(obstacles_qtable, (ndarray_to_tuple(obstacles_grid), action))
         sidewalk_q_val = get_q_val(sidewalk_qtable, (full_state.position, action))
         forward_q_val = get_q_val(forward_qtable, (full_state.position, action))
         if litter_q_val < q_val_mins[0]:
@@ -109,6 +114,7 @@ while not position_is_terminal(full_state.position):
         forward_val = rescale_qval(get_q_val(forward_qtable, (full_state.position, action)), q_val_maxes[3], q_val_mins[3])
 
         s = litter_val * W_LITTER + obstacles_val * W_OBSTACLES + sidewalk_val * W_SIDEWALK + forward_val * W_FORWARD
+        print("{} weighted value: {}".format(action_map[action], s))
         if s > max_s:
             maxes = [action]
             max_s = s
@@ -116,7 +122,11 @@ while not position_is_terminal(full_state.position):
             maxes.append(action)
 
     action = np.random.choice(maxes)
-    exit()
+    print("Selected action: {}".format(action_map[action]))
+    new_full_state = full_state_act(full_state, action)
+    full_state = new_full_state
+    position_xs.append(full_state.position[0])
+    position_ys.append(full_state.position[1])
+    print(position_xs, position_ys)
+    show_full_state(position_xs, position_ys, full_state)
 
-
-show_full_state(position_xs, position_ys, full_state)
