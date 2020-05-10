@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import pickle
 
 from collections import namedtuple
 
@@ -10,6 +12,8 @@ ObstaclesState = namedtuple('ObstaclesState', 'obstacles_grid')
 LitterState = namedtuple('LitterState', 'litter_grid')
 
 EPSILON = 0.25
+GAMMA = 0.90
+ALPHA = 0.05
 
 LITTER_GRID_DIM = 5
 LITTER_PROB = 1 / 10
@@ -19,6 +23,10 @@ action_map = {0 : 'idle', 1 : 'up', 2 : 'up right', 3 : 'right', 4 : 'down right
 
 def ndarray_to_tuple(array):
     return tuple(np.ravel(array).tolist())
+
+def tuple_to_ndarray(tup, d):
+    l = [*tup]
+    return np.reshape(np.array(l), (d, d))
 
 def act_position(position, action):
     if action == 0:
@@ -45,7 +53,8 @@ def in_bounds(position, x_min, x_max, y_min, y_max):
         return True
     return False
 
-def train_litter_initial_grid(p):
+def train_litter_initial_grid():
+    p = LITTER_PROB
     grid = np.zeros((LITTER_GRID_DIM, LITTER_GRID_DIM))
     for i in range(LITTER_GRID_DIM**2):
         position = (i // LITTER_GRID_DIM, i % LITTER_GRID_DIM)
@@ -80,7 +89,7 @@ def train_litter_reward(state, action, new_state):
         return 0
 
 def get_q_val(q_table, key):
-    if key in q_val.keys():
+    if key in q_table.keys():
         q_val = q_table[key]
     else:
         q_val = 0
@@ -91,6 +100,7 @@ def get_argmax(q_table, state):
     max_q = -1 * np.inf
     for i in range(num_actions):
         key = (ndarray_to_tuple(state), i)
+        q_val = get_q_val(q_table, key)
         if q_val > max_q:
             maxes = [i]
             max_q = q_val
@@ -101,31 +111,44 @@ def get_argmax(q_table, state):
 
 def litter_select_action(state, q_table, eps):
     opt = get_argmax(q_table, state)
-    dist = eps / n_actions * np.ones((num_actions,))
+    dist = eps / num_actions * np.ones((num_actions,))
     dist[opt] += 1 - eps
-    return np.random.choice(n_actions, p=dist)
+    return np.random.choice(num_actions, p=dist)
 
-def train_litter(num_iter):
-    q_table = {}
-    state = train_litter_initial_grid(LITTER_PROB)
-    terminal_state = np.zeros((LITTER_GRID_DIM, LITTER_GRID_DIM))
+litter_terminal_state = np.zeros((LITTER_GRID_DIM, LITTER_GRID_DIM))
+def litter_is_terminal(state):
+    if np.array_equal(state, litter_terminal_state):
+        return True
+    return False
+
+def train(num_iter, q_table, act, reward_func, action_selection, initialize_func, is_terminal_state):
+    state = initialize_func()
+    total_delta = 0
     for i in range(num_iter):
-        if np.array_equal(state, terminal_state):
-            state = train_litter_initial_grid(LITTER_PROB)
-        action = litter_select_action(state, q_table, EPSILON)
+        if is_terminal_state(state):
+            state = initialize_func()
+        action = action_selection(state, q_table, EPSILON)
         key = (ndarray_to_tuple(state), action)
-        new_state = train_litter_act(state, action)
-        reward = train_litter_reward(state, action, new_state)
+        new_state = act(state, action)
+        reward = reward_func(state, action, new_state)
         argmax_q = get_q_val(q_table, (ndarray_to_tuple(new_state), get_argmax(q_table, new_state)))
         update = reward + GAMMA * argmax_q
         old_q = get_q_val(q_table, key)
         new_q = (1 - ALPHA) * old_q + ALPHA * update
+        total_delta += np.abs(old_q - new_q)
         q_table[key] = new_q
+        state = new_state
+    return q_table, total_delta / num_iter
 
-mat = np.zeros((3, 3))
-for i in range(3**2):
-    mat[i // 3, i % 3] = i
 
+"""
+# Verifying matrix to tuple conversion and back
+mat = np.zeros((LITTER_GRID_DIM, LITTER_GRID_DIM))
+for i in range(LITTER_GRID_DIM**2):
+    mat[i // LITTER_GRID_DIM, i % LITTER_GRID_DIM] = i
+
+tup = ndarray_to_tuple(mat)
+new_mat = tuple_to_ndarray(tup, LITTER_GRID_DIM)
 
 # Just verifying the movement works as desired
 init = train_litter_initial_grid(LITTER_PROB)
@@ -137,3 +160,31 @@ for i in range(num_actions):
     print("After: ")
     print(after_act)
     print("Reward: {}".format(train_litter_reward(init, i, after_act)))
+"""
+
+ITERS_PER = 10000
+q_table = {}
+avg_deltas = []
+episodes = []
+for i in range(200):
+    q_table, avg_delta = train(ITERS_PER, q_table, train_litter_act, train_litter_reward, litter_select_action, train_litter_initial_grid, litter_is_terminal)
+    avg_deltas.append(avg_delta)
+    episodes.append(i + 1)
+    print("Iterations Trained: {}".format((i + 1) * ITERS_PER))
+    print("Q table entries: {}".format(len(q_table.keys())))
+    pair = q_table.popitem()
+    q_table[pair[0]] = pair[1]
+    state = pair[0][0]
+    print("State:\n{}".format(tuple_to_ndarray(state, LITTER_GRID_DIM)))
+    opt = get_argmax(q_table, state)
+    print("Optimal Action: {}".format(action_map[opt]))
+    print("Q value: {}".format(get_q_val(q_table, (ndarray_to_tuple(state), opt))))
+
+    with open('pickle_files/litter_qtable.pickle', 'wb') as handle:
+        pickle.dump(q_table, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    plt.figure(0)
+    plt.plot(episodes, avg_deltas)
+    plt.savefig('figures/litter_training.png')
+    plt.close()
+
