@@ -16,7 +16,9 @@ GAMMA = 0.90
 ALPHA = 0.05
 
 LITTER_GRID_DIM = 5
+OBSTACLES_GRID_DIM = 3
 LITTER_PROB = 1 / 10
+OBSTACLES_PROB = 1 / 5
 
 num_actions = 9
 action_map = {0 : 'idle', 1 : 'up', 2 : 'up right', 3 : 'right', 4 : 'down right', 5 : 'down', 6 : 'down left', 7 : 'left', 8 : 'up left'}
@@ -66,6 +68,19 @@ def train_litter_initial_grid():
             grid[position[0], position[1]] = 1
     return grid
 
+def train_obstacles_initial_grid():
+    p = OBSTACLES_PROB
+    grid = np.zeros((OBSTACLES_GRID_DIM, OBSTACLES_GRID_DIM))
+    for i in range(OBSCTACLES_GRID_DIM**2):
+        position = (i // OBSTACLES_GRID_DIM, i % OBSTACLES_GRID_DIM)
+        r = np.random.rand()
+        if position[0] == OBSTACLES_GRID_DIM // 2 and position[1] == OBSTACLES_GRID_DIM // 2:
+            # Center of the grid, no litter initially here
+            continue
+        elif r < p:
+            grid[position[0], position[1]] = 1
+    return grid
+
 def train_litter_act(litter_grid, action):
     new_litter_grid = np.zeros((LITTER_GRID_DIM, LITTER_GRID_DIM))
     for i in range(LITTER_GRID_DIM**2):
@@ -80,11 +95,30 @@ def train_litter_act(litter_grid, action):
             new_litter_grid[position[0], position[1]] = 0
     return new_litter_grid
 
+def train_obstacles_act(grid, action):
+    new_grid = np.zeros((OBSTACLES_GRID_DIM, OBSTACLES_GRID_DIM))
+    for i in range(OBSCTACLES_GRID_DIM**2):
+        position = (i // OBSTACLES_GRID_DIM, i % OBSTACLES_GRID_DIM)
+        new_position = act_position(position, action)
+        if in_bounds(new_position, 0, OBSTACLES_GRID_DIM - 1, 0, OBSTACLES_GRID_DIM - 1):
+            new_grid[position[0], position[1]] = grid[new_position[0], new_position[1]]
+        else:
+            new_grid[position[0], position[1]] = 0
+    return new_grid
+
 def train_litter_reward(state, action, new_state):
     position = (LITTER_GRID_DIM // 2, LITTER_GRID_DIM // 2)
     new_position = act_position(position, action)
     if state[new_position[0], new_position[1]] == 1:
         return 1
+    else:
+        return 0
+
+def train_obstacles_reward(state, action, new_state):
+    position = (OBSTACLES_GRID_DIM // 2, OBSTACLES_GRID_DIM // 2)
+    new_position = act_position(position, action)
+    if state[new_position[0], new_position[1]] == 1:
+        return -1
     else:
         return 0
 
@@ -109,7 +143,7 @@ def get_argmax(q_table, state):
     opt = np.random.choice(maxes)
     return opt
 
-def litter_select_action(state, q_table, eps):
+def select_action(state, q_table, eps):
     opt = get_argmax(q_table, state)
     dist = eps / num_actions * np.ones((num_actions,))
     dist[opt] += 1 - eps
@@ -118,6 +152,12 @@ def litter_select_action(state, q_table, eps):
 litter_terminal_state = np.zeros((LITTER_GRID_DIM, LITTER_GRID_DIM))
 def litter_is_terminal(state):
     if np.array_equal(state, litter_terminal_state):
+        return True
+    return False
+
+obstacles_terminal_state = np.zeros((OBSTACLES_GRID_DIM, OBSTACLES_GRID_DIM))
+def litter_is_terminal(state):
+    if np.array_equal(state, obstacles_terminal_state):
         return True
     return False
 
@@ -170,8 +210,9 @@ episodes = []
 for i in range(200):
     """
     # The training for litter collection
-    q_table, avg_delta = train(ITERS_PER, q_table, train_litter_act, train_litter_reward, litter_select_action, train_litter_initial_grid, litter_is_terminal)
+    q_table, avg_delta = train(ITERS_PER, q_table, train_litter_act, train_litter_reward, select_action, train_litter_initial_grid, litter_is_terminal)
     """
+    q_table, avg_delta = train(ITERS_PER, q_table, train_obstacles_act, train_obstacles_reward, select_action, train_obstacles_initial_grid, obstacles_is_terminal)
     avg_deltas.append(avg_delta)
     episodes.append(i + 1)
     print("Iterations Trained: {}".format((i + 1) * ITERS_PER))
@@ -193,5 +234,10 @@ for i in range(200):
     plt.savefig('figures/litter_training.png')
     plt.close()
     """
+    with open('pickle_files/obstacles_qtable.pickle', 'wb') as handle:
+        pickle.dump(q_table, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-
+    plt.figure(0)
+    plt.plot(episodes, avg_deltas)
+    plt.savefig('figures/obstacles_training.png')
+    plt.close()
