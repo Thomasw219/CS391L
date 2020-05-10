@@ -6,15 +6,12 @@ from collections import namedtuple
 
 FullState = namedtuple('FullState', 'position obstacles litter')
 
-SidewalkState = namedtuple('SidewalkState', 'position')
-ForwardState = namedtuple('ForwardState', 'position')
-ObstaclesState = namedtuple('ObstaclesState', 'obstacles_grid')
-LitterState = namedtuple('LitterState', 'litter_grid')
-
-EPSILON = 0.25
+EPSILON = 0.5
 GAMMA = 0.90
 ALPHA = 0.05
 
+FULL_GRID_X = 6
+FULL_GRID_Y = 25
 LITTER_GRID_DIM = 5
 OBSTACLES_GRID_DIM = 3
 LITTER_PROB = 1 / 10
@@ -22,6 +19,8 @@ OBSTACLES_PROB = 1 / 5
 
 num_actions = 9
 action_map = {0 : 'idle', 1 : 'up', 2 : 'up right', 3 : 'right', 4 : 'down right', 5 : 'down', 6 : 'down left', 7 : 'left', 8 : 'up left'}
+
+sidewalk_rows = set([1, 2, 3, 4])
 
 def ndarray_to_tuple(array):
     return tuple(np.ravel(array).tolist())
@@ -71,15 +70,16 @@ def train_litter_initial_grid():
 def train_obstacles_initial_grid():
     p = OBSTACLES_PROB
     grid = np.zeros((OBSTACLES_GRID_DIM, OBSTACLES_GRID_DIM))
-    for i in range(OBSCTACLES_GRID_DIM**2):
+    for i in range(OBSTACLES_GRID_DIM**2):
         position = (i // OBSTACLES_GRID_DIM, i % OBSTACLES_GRID_DIM)
         r = np.random.rand()
-        if position[0] == OBSTACLES_GRID_DIM // 2 and position[1] == OBSTACLES_GRID_DIM // 2:
-            # Center of the grid, no litter initially here
-            continue
-        elif r < p:
+        if r < p:
             grid[position[0], position[1]] = 1
     return grid
+
+def train_initial_position():
+    r = np.random.choice(4) + 1
+    return (r, 0)
 
 def train_litter_act(litter_grid, action):
     new_litter_grid = np.zeros((LITTER_GRID_DIM, LITTER_GRID_DIM))
@@ -97,7 +97,7 @@ def train_litter_act(litter_grid, action):
 
 def train_obstacles_act(grid, action):
     new_grid = np.zeros((OBSTACLES_GRID_DIM, OBSTACLES_GRID_DIM))
-    for i in range(OBSCTACLES_GRID_DIM**2):
+    for i in range(OBSTACLES_GRID_DIM**2):
         position = (i // OBSTACLES_GRID_DIM, i % OBSTACLES_GRID_DIM)
         new_position = act_position(position, action)
         if in_bounds(new_position, 0, OBSTACLES_GRID_DIM - 1, 0, OBSTACLES_GRID_DIM - 1):
@@ -105,6 +105,13 @@ def train_obstacles_act(grid, action):
         else:
             new_grid[position[0], position[1]] = 0
     return new_grid
+
+def train_position_act(position, action):
+    new_position = act_position(position, action)
+    if in_bounds(new_position, 0, FULL_GRID_X - 1, 0, FULL_GRID_Y - 1):
+        return new_position
+    else:
+        return position
 
 def train_litter_reward(state, action, new_state):
     position = (LITTER_GRID_DIM // 2, LITTER_GRID_DIM // 2)
@@ -119,6 +126,18 @@ def train_obstacles_reward(state, action, new_state):
     new_position = act_position(position, action)
     if state[new_position[0], new_position[1]] == 1:
         return -1
+    else:
+        return 0
+
+def train_sidewalk_reward(state, action, new_state):
+    if new_state[0] in sidewalk_rows:
+        return 0
+    else:
+        return -1
+
+def train_forward_reward(state, action, new_state):
+    if new_state[1] == FULL_GRID_Y:
+        return 1
     else:
         return 0
 
@@ -156,7 +175,7 @@ def litter_is_terminal(state):
     return False
 
 obstacles_terminal_state = np.zeros((OBSTACLES_GRID_DIM, OBSTACLES_GRID_DIM))
-def litter_is_terminal(state):
+def obstacles_is_terminal(state):
     if np.array_equal(state, obstacles_terminal_state):
         return True
     return False
@@ -207,12 +226,13 @@ q_table = {}
 avg_deltas = []
 episodes = []
 
-for i in range(200):
+for i in range(100):
     """
     # The training for litter collection
     q_table, avg_delta = train(ITERS_PER, q_table, train_litter_act, train_litter_reward, select_action, train_litter_initial_grid, litter_is_terminal)
-    """
+    # Training for obstacle avoidance
     q_table, avg_delta = train(ITERS_PER, q_table, train_obstacles_act, train_obstacles_reward, select_action, train_obstacles_initial_grid, obstacles_is_terminal)
+    """
     avg_deltas.append(avg_delta)
     episodes.append(i + 1)
     print("Iterations Trained: {}".format((i + 1) * ITERS_PER))
@@ -220,7 +240,8 @@ for i in range(200):
     pair = q_table.popitem()
     q_table[pair[0]] = pair[1]
     state = pair[0][0]
-    print("State:\n{}".format(tuple_to_ndarray(state, LITTER_GRID_DIM)))
+    #print("State:\n{}".format(tuple_to_ndarray(state, LITTER_GRID_DIM)))
+    print("State:\n{}".format(tuple_to_ndarray(state, OBSTACLES_GRID_DIM)))
     opt = get_argmax(q_table, state)
     print("Optimal Action: {}".format(action_map[opt]))
     print("Q value: {}".format(get_q_val(q_table, (ndarray_to_tuple(state), opt))))
