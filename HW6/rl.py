@@ -17,6 +17,7 @@ OBSTACLES_GRID_DIM = 3
 LITTER_PROB = 1 / 10
 OBSTACLES_PROB = 1 / 5
 
+num_modules = 4
 num_actions = 9
 action_map = {0 : 'idle', 1 : 'up', 2 : 'up right', 3 : 'right', 4 : 'down right', 5 : 'down', 6 : 'down left', 7 : 'left', 8 : 'up left'}
 
