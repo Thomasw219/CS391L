@@ -4,13 +4,13 @@ import pickle
 
 from rl import *
 
-with open('pickle_files/litter_qtable.pickle', 'rb') as handle:
+with open('pickle_files/litter5_qtable.pickle', 'rb') as handle:
     litter_qtable = pickle.load(handle)
-with open('pickle_files/obstacles_qtable.pickle', 'rb') as handle:
+with open('pickle_files/obstacles500_qtable.pickle', 'rb') as handle:
     obstacles_qtable = pickle.load(handle)
-with open('pickle_files/sidewalk_qtable.pickle', 'rb') as handle:
+with open('pickle_files/sidewalk500_qtable.pickle', 'rb') as handle:
     sidewalk_qtable = pickle.load(handle)
-with open('pickle_files/forward_qtable.pickle', 'rb') as handle:
+with open('pickle_files/forward500_qtable.pickle', 'rb') as handle:
     forward_qtable = pickle.load(handle)
 
 def create_full_state():
@@ -61,14 +61,16 @@ def full_state_act(full_state, action):
     full_state.litter[new_position[0], new_position[1]] = 0
     return FullState(new_position, full_state.litter, full_state.obstacles)
 
-np.random.seed(1)
+np.random.seed(0)
 full_state = create_full_state()
 init_litter = np.copy(full_state.litter)
 
-W_LITTER = 0.75
-W_OBSTACLES = 0
-W_SIDEWALK = 0
-W_FORWARD = 0.25
+W_LITTER = 0.4
+W_OBSTACLES = 0.2
+W_SIDEWALK = 0.2
+W_FORWARD = 0.2
+
+COMBINED_EPSILON = 0.1
 
 litter_padding = LITTER_GRID_DIM // 2
 obstacles_padding = OBSTACLES_GRID_DIM // 2
@@ -123,7 +125,8 @@ while not position_is_terminal(full_state.position):
         elif s == max_s:
             maxes.append(action)
 
-    action = np.random.choice(maxes)
+    opt = np.random.choice(maxes)
+    action = epsilon_greedy(opt, COMBINED_EPSILON)
     print("Selected action: {}".format(action_map[action]))
     new_full_state = full_state_act(full_state, action)
     full_state = new_full_state
@@ -132,3 +135,5 @@ while not position_is_terminal(full_state.position):
     print(position_xs, position_ys)
     show_full_state(position_xs, position_ys, full_state)
 
+full_state = FullState(full_state.position, init_litter, full_state.obstacles)
+show_full_state(position_xs, position_ys, full_state)

@@ -163,11 +163,14 @@ def get_argmax(q_table, state):
     opt = np.random.choice(maxes)
     return opt
 
-def select_action(state, q_table, eps):
-    opt = get_argmax(q_table, state)
+def epsilon_greedy(opt, eps):
     dist = eps / num_actions * np.ones((num_actions,))
     dist[opt] += 1 - eps
     return np.random.choice(num_actions, p=dist)
+
+def select_action(state, q_table, eps):
+    opt = get_argmax(q_table, state)
+    return epsilon_greedy(opt, eps)
 
 litter_terminal_state = np.zeros((LITTER_GRID_DIM, LITTER_GRID_DIM))
 def litter_is_terminal(state):
